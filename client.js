@@ -65,6 +65,9 @@ window.__ModuleLoader__.load({
 
     // ─── Font application ────────────────────────────────────────────────────
 
+    /** 字号样式元素 ID，用于注入 !important 规则对抗 DSH 的内联覆盖 */
+    var FONT_SIZE_STYLE_ID = "dsh-font-settings-size";
+
     /**
      * 将字体设置应用到 DOM。
      * fontFamily — 全局字体
@@ -89,12 +92,21 @@ window.__ModuleLoader__.load({
         body.style.setProperty("--dsw-font-family", fontStack);
       }
 
-      // 字号：设置 --dsh-content-font-size（主内容字号变量）
+      // 字号：通过 !important 规则压制 DSH 的内联覆盖
+      // DSH 的 ThemePresenter（ui-layout）会在插件启动后
+      // 把 body 内联样式写回 --dsh-content-font-size，覆盖我们的设置。
+      // 样式表规则的 !important 优先级高于内联样式，可压制 DSH 的覆盖。
       var size = parseInt(fontSize, 10);
-      if (!isNaN(size) && size >= 8 && size <= 30) {
-        body.style.setProperty("--dsh-content-font-size", size + "px");
+      var sizeStyle = document.getElementById(FONT_SIZE_STYLE_ID);
+      if (!isNaN(size) && size >= 8 && size <= 30 && size !== 14) {
+        if (!sizeStyle) {
+          sizeStyle = document.createElement("style");
+          sizeStyle.id = FONT_SIZE_STYLE_ID;
+          document.head.appendChild(sizeStyle);
+        }
+        sizeStyle.textContent = "body{--dsh-content-font-size:" + size + "px!important}";
       } else {
-        body.style.removeProperty("--dsh-content-font-size");
+        if (sizeStyle) sizeStyle.textContent = "";
       }
 
       // 代码字体：回滚后缀也追加到代码字体
